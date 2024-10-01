@@ -24,6 +24,7 @@ To train our model on dataset:
 
 Run
 
+    cd <dataset_name>
     python train_qap.py
 
 The inference code is together with the training code.
