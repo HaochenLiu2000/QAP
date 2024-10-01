@@ -2,6 +2,8 @@
 
 ## 1. Datasets
 
+Our datasets are provided by [QA-GNN](https://arxiv.org/abs/2104.06378) and [Dragon](https://arxiv.org/abs/2210.09338).
+
 Download the QA datasets and ConceptNet for general domain [here](https://nlp.stanford.edu/projects/myasu/DRAGON/data_preprocessed.zip) and for biomedical domain [here](https://nlp.stanford.edu/projects/myasu/QAGNN/data_preprocessed_biomed.zip). Unzip the datasets under `/QAP/`.
 
 ## 2. Dependencies
