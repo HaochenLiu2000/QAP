@@ -1,4 +1,4 @@
-# Question-Aware Knowledge Graph Prompting
+# Question-Aware Knowledge Graph Prompting for Large Language Models
 
 ## 1. Datasets
 
