@@ -6,6 +6,8 @@ Our datasets are provided by [QA-GNN](https://arxiv.org/abs/2104.06378) and [Dra
 
 Download the QA datasets and ConceptNet for general domain [here](https://nlp.stanford.edu/projects/myasu/DRAGON/data_preprocessed.zip) and for biomedical domain [here](https://nlp.stanford.edu/projects/myasu/QAGNN/data_preprocessed_biomed.zip). Unzip the datasets under `/QAP/`.
 
+Download the Llama2-chat models [here](https://huggingface.co/meta-llama) and place the model under `/QAP/`.
+
 ## 2. Dependencies
 
 Run the following commands to create a conda environment:

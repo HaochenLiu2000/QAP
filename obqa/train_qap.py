@@ -451,13 +451,13 @@ elif llm=="flant5-11b":
     train_note="flan-t5-11b.txt"
     model_path='model/decoder_flan-t5-11b.pth'
 elif llm=="llama2-7bchat":
-    tokenizer = LlamaTokenizer.from_pretrained("./../../llama2-7bchat")
-    model = LlamaForCausalLM.from_pretrained("./../../llama2-7bchat")
+    tokenizer = LlamaTokenizer.from_pretrained("./../llama2-7bchat")
+    model = LlamaForCausalLM.from_pretrained("./../llama2-7bchat")
     train_note="llama2-7bchat.txt"
     model_path='model/decoder_llama2-7b.pth'
 elif llm=="llama2-13bchat":
-    tokenizer = LlamaTokenizer.from_pretrained("./../../llama2-13bchat")
-    model = LlamaForCausalLM.from_pretrained("./../../llama2-13bchat")
+    tokenizer = LlamaTokenizer.from_pretrained("./../llama2-13bchat")
+    model = LlamaForCausalLM.from_pretrained("./../llama2-13bchat")
     train_note="llama2-13bchat.txt"
     model_path='model/decoder_llama2-13b.pth'
 model.to(device2)
