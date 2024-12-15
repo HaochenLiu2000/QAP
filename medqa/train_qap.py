@@ -16,7 +16,17 @@ import random
 dataset_name='medqa'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device2 = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-token_dim=2048*2
+llm="flant5-3b"
+
+
+if llm=="flant5-3b":
+    token_dim=2048
+elif llm=="flant5-11b":
+    token_dim=2048*2
+elif llm=="llama2-7bchat":
+    token_dim=2048*2
+elif llm=="llama2-13bchat":
+    token_dim=5120
 
 if dataset_name=='riddle':
     option_num=5
@@ -90,13 +100,17 @@ def load_and_preprocess_data_with_options(file_path, istest=False):
             
             question = item['question']['stem']
             choices = item['question']['choices']
-            options_text = ' '.join([f"{choice['label']}: {choice['text']}" for choice in choices])
+            options_text = ' '.join([f"{choice['label']}. {choice['text']}\n" for choice in choices])
             #input_text = f"Choose the most suitable option as a continuation of the following statement: {question} () Options: {options_text} Your answer: "
             input_text = question
             options = {choice['label']: choice['text'] for choice in choices}
             for choice in choices:
-                if choice['label']==item['answerKey']:
-                    answer = f"{choice['label']}: {choice['text']}"
+                if dataset_name=='csqa' and istest:
+                    if choice['label']=='A':
+                        answer = f"{choice['label']}: {choice['text']}"
+                else:
+                    if choice['label']==item['answerKey']:
+                        answer = f"{choice['label']}: {choice['text']}"
             
             data.append({'id': i, 'input_text': input_text, 'answer': answer, 'options': options, 'option_text': options_text})
             i+=1
@@ -426,8 +440,26 @@ heads=4
 decoder = GraphTransformer(num_layers=num_layers, in_channels=in_features, out_channels=out_features, heads=heads)
 
 
-tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-xxl")
-model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-xxl")
+if llm=="flant5-3b":
+    tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-xl")
+    model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-xl")
+    train_note="flan-t5-3b.txt"
+    model_path='model/decoder_flan-t5-3b.pth'
+elif llm=="flant5-11b":
+    tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-xxl")
+    model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-xxl")
+    train_note="flan-t5-11b.txt"
+    model_path='model/decoder_flan-t5-11b.pth'
+elif llm=="llama2-7bchat":
+    tokenizer = LlamaTokenizer.from_pretrained("./../../llama2-7bchat")
+    model = LlamaForCausalLM.from_pretrained("./../../llama2-7bchat")
+    train_note="llama2-7bchat.txt"
+    model_path='model/decoder_llama2-7b.pth'
+elif llm=="llama2-13bchat":
+    tokenizer = LlamaTokenizer.from_pretrained("./../../llama2-13bchat")
+    model = LlamaForCausalLM.from_pretrained("./../../llama2-13bchat")
+    train_note="llama2-13bchat.txt"
+    model_path='model/decoder_llama2-13b.pth'
 model.to(device2)
 
 for param in model.parameters():
@@ -470,7 +502,8 @@ def combine2(concept_ids, edge_index, edge_type, soft_prompt, input_text, option
     
     qh_s=[]
     for i in range(len(input_text)):
-        qh_s.append('Question: '+input_text[i]+' ()\nChoose one from the options: '+option_text[i]+'\nAnswer: '  )
+        qh_s.append(f'''Question: {input_text[i]}
+            {option_text[i]} Answer:''')
     
     qh_input = tokenizer(qh_s, return_tensors="pt", padding=True, truncation=True)
     qh_input_mask = qh_input.attention_mask.to(device2)
@@ -490,17 +523,19 @@ def combine2(concept_ids, edge_index, edge_type, soft_prompt, input_text, option
     return input_emb, input_mask
 
 def answer_question(input_text, options, option_text, graph, answer):
-    
+    tokenizer.pad_token_id=0
     input = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True)
     input_mask = input.attention_mask.to(device2)
     input_ids = input.input_ids.to(device2)
     decoder_start_token_id = tokenizer.pad_token_id
     decoder_input_ids = torch.tensor([[decoder_start_token_id]]*len(input_text)).to(device2)
     with torch.no_grad():
-        outputs = model(input_ids=input_ids, attention_mask=input_mask, decoder_input_ids=decoder_input_ids)
+        outputs = model(input_ids=input_ids, attention_mask=input_mask, decoder_input_ids=decoder_input_ids,output_hidden_states=True)
 
-    last_hidden_states = outputs.encoder_last_hidden_state
-    
+    if llm=="llama2-7bchat" or llm=="llama2-13bchat":
+        last_hidden_states = outputs.hidden_states[-1]
+    elif llm=="flant5-3b" or llm=="flant5-11b":
+        last_hidden_states = outputs.encoder_last_hidden_state
     sentence_embeddings = (last_hidden_states * input_mask.unsqueeze(-1)).sum(dim=1) / input_mask.sum(dim=1).unsqueeze(-1)
     sentence_embeddings=sentence_embeddings.to(device)
     
@@ -513,7 +548,6 @@ def answer_question(input_text, options, option_text, graph, answer):
     
     edge_index=graph['subgraphs'].edge_index
     edge_type=graph['subgraphs'].edge_attr
-    
     batch=graph['batch']
     
             
@@ -526,29 +560,41 @@ def answer_question(input_text, options, option_text, graph, answer):
     
     
     
-    label_text = answer
-    labels = tokenizer(label_text, return_tensors="pt", padding=True, truncation=True)
-    labels_ids = labels.input_ids.to(device2)
-    
-    outputs = model(inputs_embeds=input_emb, attention_mask=input_mask, labels=labels_ids)
-
-    loss = outputs.loss/len(input_text)
+    if llm=="llama2-7bchat" or llm=="llama2-13bchat":
+        label_text = answer
+        labels = tokenizer(label_text, return_tensors="pt", padding=True, truncation=True)
+        labels_ids = labels.input_ids.to(device2)
+        labels_mask=labels.attention_mask.to(device2)
+        input_emb = torch.cat([input_emb, model.get_input_embeddings()(labels_ids)], dim=1)
+        labels_ids = torch.cat([torch.full_like(input_mask, -100), labels_ids], dim=1)
+        input_mask = torch.cat([input_mask, labels_mask], dim=1)
+        outputs = model(inputs_embeds=input_emb, attention_mask=input_mask, labels=labels_ids)
+        loss = outputs.loss/len(input_text)
+    elif llm=="flant5-3b" or llm=="flant5-11b":
+        label_text = answer
+        labels = tokenizer(label_text, return_tensors="pt", padding=True, truncation=True)
+        labels_ids = labels.input_ids.to(device2)
+        outputs = model(inputs_embeds=input_emb, attention_mask=input_mask, labels=labels_ids)
+        loss = outputs.loss/len(input_text)
     
     return loss
 
 
 def answer_question2(input_text, options, option_text, graph, answer):
     
-    
+    tokenizer.pad_token_id=0
     input = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True)
     input_mask = input.attention_mask.to(device2)
     input_ids = input.input_ids.to(device2)
     decoder_start_token_id = tokenizer.pad_token_id
     decoder_input_ids = torch.tensor([[decoder_start_token_id]]*len(input_text)).to(device2)
     with torch.no_grad():
-        outputs = model(input_ids=input_ids, attention_mask=input_mask, decoder_input_ids=decoder_input_ids)
+        outputs = model(input_ids=input_ids, attention_mask=input_mask, decoder_input_ids=decoder_input_ids,output_hidden_states=True)
 
-    last_hidden_states = outputs.encoder_last_hidden_state
+    if llm=="llama2-7bchat" or llm=="llama2-13bchat":
+        last_hidden_states = outputs.hidden_states[-1]
+    elif llm=="flant5-3b" or llm=="flant5-11b":
+        last_hidden_states = outputs.encoder_last_hidden_state
 
     sentence_embeddings = (last_hidden_states * input_mask.unsqueeze(-1)).sum(dim=1) / input_mask.sum(dim=1).unsqueeze(-1)
     sentence_embeddings=sentence_embeddings.to(device)
@@ -574,11 +620,17 @@ def answer_question2(input_text, options, option_text, graph, answer):
                         past_key_values=None, 
                         use_cache=True)
     if option_num==5:
-        logits = outputs.logits[:, :, [71, 272, 205, 309, 262]]
+        if llm=="flant5-3b" or llm=="flant5-11b":
+            logits = outputs.logits[:, :, [71, 272, 205, 309, 262]]
+        elif llm=="llama2-7bchat" or llm=="llama2-13bchat":
+            logits = outputs.logits[:, [-1], [319,350,315,360,382]]
         logits = logits.view(logits.size(-1))
         max_values, max_indices = torch.max(logits,dim=0)
     elif option_num==4:
-        logits = outputs.logits[:, :, [71, 272, 205, 309]]
+        if llm=="flant5-3b" or llm=="flant5-11b":
+            logits = outputs.logits[:, :, [71, 272, 205, 309]]
+        elif llm=="llama2-7bchat" or llm=="llama2-13bchat":
+            logits = outputs.logits[:, [-1], [319,350,315,360]]
         logits = logits.view(logits.size(-1))
         max_values, max_indices = torch.max(logits,dim=0)
     
@@ -593,7 +645,7 @@ def answer_question2(input_text, options, option_text, graph, answer):
         generated_text="D"
     elif t==4:
         generated_text="E"
-        
+    
     return generated_text
 
 
@@ -605,7 +657,7 @@ num_epochs=100
 optimizer = torch.optim.AdamW(decoder.parameters(), lr=5e-6)
 optimizer.zero_grad()
 
-train_note="train_note11B.txt"
+train_note="train_note.txt"
 acc_test=0
 for epoch in range(num_epochs):
     
