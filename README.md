@@ -6,7 +6,7 @@ The codes are associated with the following paper:
 >Haochen Liu, Song Wang, Chen Chen, Jundong Li.
 
 <p align="center">
-<img src="QAP.png" alt="Overview of QAP." width="66.6%" />
+<img src="QAP.png" alt="Overview of QAP." width="100%" />
 </p>
 
 ## 1. Datasets
