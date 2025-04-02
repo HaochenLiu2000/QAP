@@ -13,7 +13,7 @@ import random
 from torch.utils.data import DataLoader, Dataset
 from torch_geometric.data import Data, Batch
 import random
-dataset_name='obqa'
+dataset_name='medqa'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device2 = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 llm="flant5-3b"
@@ -651,64 +651,28 @@ def answer_question2(input_text, options, option_text, graph, answer):
 
 
 
-num_epochs=100
-
-
-optimizer = torch.optim.AdamW(decoder.parameters(), lr=5e-6)
-optimizer.zero_grad()
-
 train_note="train_note.txt"
 acc_test=0
-for epoch in range(num_epochs):
+state_dict = torch.load(f'model.pth')
+decoder.load_state_dict(state_dict)  
+total_test_loss = 0
+
+idx3=0   
+correct3=0 
+for q in tqdm(test_dataloader):
+    graph=set_graph(q,test_graph)
+    id=q['id']
+    input_text = q['input_text']
+    options = q['options']
+    answer = q['answer']
+    option_text = q['option_text']
+    batch=graph['batch']
+    if int(int(batch[-1]+1)/option_num)==0:
+        continue
+    with torch.no_grad():
+        generated_text = answer_question2(input_text, options, option_text, graph, answer)
+    if len(generated_text)>0 and answer[0][0].lower() == generated_text[0].lower():
+        correct3+=1
+    idx3+=1
     
-    total_train_loss = 0
-    total_dev_loss = 0
-    total_test_loss = 0
-    idx=0
-    for q in tqdm(train_dataloader):
-        graph=set_graph(q,train_graph)
-        id=q['id']
-        input_text = q['input_text']
-        options = q['options']
-        answer = q['answer']
-        option_text = q['option_text']
-        batch=graph['batch']
-        if int(int(batch[-1]+1)/option_num)==0:
-            continue
-        loss = answer_question(input_text, options, option_text, graph, answer)
-        total_train_loss += loss.item()
-    
-        loss.backward()
-        #torch.nn.utils.clip_grad_norm_(encoder.parameters(), max_norm=1.0)
-        #torch.nn.utils.clip_grad_norm_(decoder.parameters(), max_norm=1.0)
-        optimizer.step()
-        optimizer.zero_grad()
-        idx+=1
-    
-    idx2=0   
-    correct2=0 
-    for q in tqdm(dev_dataloader):
-        graph=set_graph(q,dev_graph)
-        id=q['id']
-        input_text = q['input_text']
-        options = q['options']
-        answer = q['answer']
-        option_text = q['option_text']
-        batch=graph['batch']
-        if int(int(batch[-1]+1)/option_num)==0:
-            continue
-        with torch.no_grad():
-            generated_text = answer_question2(input_text, options, option_text, graph, answer)
-        if len(generated_text)>0 and answer[0][0].lower() == generated_text[0].lower():
-            correct2+=1
-        idx2+=1
-        
-    train_loss=total_train_loss/len(train_dataloader)
-    
-    print(f"Epoch {epoch + 1}/{num_epochs}, Loss_train: {train_loss}, acc_dev: {correct2}/500")
-    if correct2>=acc_test:
-        torch.save(decoder.state_dict(), 'model.pth')
-        acc_test=correct2
-    with open(train_note, 'a') as f:
-        f.write(f"Epoch {epoch + 1}/{num_epochs}, Loss_train: {train_loss}, acc_dev: {correct2}/500")
-        f.write('\n')
+print(f" acc_test: {correct3}/1273")

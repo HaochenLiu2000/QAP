@@ -1,5 +1,14 @@
 # Question-Aware Knowledge Graph Prompting for Large Language Models
 
+The codes are associated with the following paper:
+
+>**Question-Aware Knowledge Graph Prompting for Large Language Models,** [PDF](https://arxiv.org/pdf/2503.23523)  
+>Haochen Liu, Song Wang, Chen Chen, Jundong Li.
+
+<p align="center">
+<img src="QAP.pdf" alt="Overview of QAP." width="66.6%" />
+</p>
+
 ## 1. Datasets
 
 Our datasets are provided by [QA-GNN](https://arxiv.org/abs/2104.06378) and [Dragon](https://arxiv.org/abs/2210.09338).
@@ -29,4 +38,11 @@ Run
     cd <dataset_name>
     python train_qap.py
 
-The inference code is together with the training code.
+## 4. Training
+
+To Evaluate the trained model on dataset:
+
+Run
+
+    cd <dataset_name>
+    python test_qap.py

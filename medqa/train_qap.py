@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import T5Tokenizer, T5ForConditionalGeneration, LlamaTokenizer, LlamaForCausalLM
 from tqdm import tqdm
 from torch_geometric.nn.glob import global_mean_pool, global_add_pool, global_max_pool
 import random
@@ -703,34 +703,12 @@ for epoch in range(num_epochs):
             correct2+=1
         idx2+=1
     
-    
-    idx3=0   
-    correct3=0 
-    for q in tqdm(test_dataloader):
-        graph=set_graph(q,test_graph)
-        id=q['id']
-        input_text = q['input_text']
-        options = q['options']
-        answer = q['answer']
-        option_text = q['option_text']
-        batch=graph['batch']
-        if int(int(batch[-1]+1)/option_num)==0:
-            continue
-        with torch.no_grad():
-            generated_text = answer_question2(input_text, options, option_text, graph, answer)
-        if len(generated_text)>0 and answer[0][0].lower() == generated_text[0].lower():
-            correct3+=1
-        idx3+=1
-        
-        
-        
-        
     train_loss=total_train_loss/len(train_dataloader)
     
-    print(f"Epoch {epoch + 1}/{num_epochs}, Loss_train: {train_loss}, acc_dev: {correct2}/1272, acc_test: {correct3}/1273")
+    print(f"Epoch {epoch + 1}/{num_epochs}, Loss_train: {train_loss}, acc_dev: {correct2}/1272")
     if correct2>=acc_test:
-        torch.save(decoder.state_dict(), 'model/model.pth')
+        torch.save(decoder.state_dict(), 'model.pth')
         acc_test=correct2
     with open(train_note, 'a') as f:
-        f.write(f"Epoch {epoch + 1}/{num_epochs}, Loss_train: {train_loss}, acc_dev: {correct2}/1272, acc_test: {correct3}/1273")
+        f.write(f"Epoch {epoch + 1}/{num_epochs}, Loss_train: {train_loss}, acc_dev: {correct2}/1272")
         f.write('\n')
