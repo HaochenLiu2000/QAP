@@ -5,7 +5,9 @@ The codes are associated with the following paper:
 >**Question-Aware Knowledge Graph Prompting for Large Language Models,** [PDF](https://arxiv.org/pdf/2503.23523)  
 >Haochen Liu, Song Wang, Chen Chen, Jundong Li.
 
-![Overview of QAP.](QAP.png)
+<p align="center">
+<img src="QAP.png" alt="Overview of QAP." width="66.6%" />
+</p>
 
 ## 1. Datasets
 
