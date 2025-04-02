@@ -23,11 +23,11 @@ Run the following commands to create a conda environment:
 
     conda create -y -n qap python=3.11
     conda activate qap
-    pip install numpy
-    pip install torch
-    pip install transformers
+    pip install numpy==2.0.1
+    pip install torch==2.4.0
+    pip install transformers==4.46.2
     pip install tqdm
-    pip install torch-geometric
+    pip install torch-geometric==2.7.0
 
 ## 3. Training
 
