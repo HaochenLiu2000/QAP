@@ -37,7 +37,7 @@ Run
     cd <dataset_name>
     python train_qap.py
 
-## 4. Training
+## 4. Evaluating
 
 To Evaluate the trained model on dataset:
 
