@@ -1,8 +1,8 @@
-# Question-Aware Knowledge Graph Prompting for Large Language Models
+# Question-Aware Knowledge Graph Prompting for Enhancing Large Language Models
 
 The codes are associated with the following paper:
 
->**Question-Aware Knowledge Graph Prompting for Large Language Models**
+>**Question-Aware Knowledge Graph Prompting for Enhancing Large Language Models**
 
 <p align="center">
 <img src="QAP.png" alt="Overview of QAP." width="100%" />
